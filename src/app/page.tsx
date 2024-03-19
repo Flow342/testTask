@@ -1,95 +1,107 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
 import styles from "./page.module.css";
+import { MetaMaskInpageProvider } from "@metamask/providers";
+import { ethers, formatEther } from "ethers";
+import { Box, Button, TextField, useMediaQuery } from "@mui/material";
+
+declare global {
+    interface Window {
+        ethereum?: MetaMaskInpageProvider;
+    }
+}
 
 export default function Home() {
-  return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    const initialState = { accounts: [] };
+    const [userAccount, setUserAccount] = useState(initialState);
+    const [balance, setBalance] = useState<any>();
+    const [sendAccount, setSendAccount] = useState();
+    const minWidth770px = useMediaQuery("(min-width: 770px)");
+
+    const updateWallet = async (accounts: any) => {
+        setUserAccount({ accounts });
+    };
+
+    const getBalance = async (account: string) => {
+        let balance = await window.ethereum?.request({
+            method: "eth_getBalance",
+            params: [account, "latest"],
+        });
+
+        if (ethers.isHexString(balance)) {
+            setBalance(formatEther(balance));
+        }
+    };
+
+    const transact = async (account: string, toAccount: string) => {
+        await window.ethereum?.request({
+            method: "eth_sendTransaction",
+            params: [
+                {
+                    to: toAccount,
+                    from: account,
+                    gasPrice: Number(25000000).toString(16),
+                },
+            ],
+        });
+    };
+    const handleConnect = async () => {
+        let accounts = await window.ethereum?.request({
+            method: "eth_requestAccounts",
+        });
+        updateWallet(accounts);
+        getBalance(accounts[0]);
+    };
+
+    return (
+        <div className={styles.app}>
+            <div className={styles.wrapper}>
+                {userAccount.accounts.length === 0 && (
+                    <Button variant="outlined" onClick={handleConnect}>
+                        Connect MetaMask
+                    </Button>
+                )}
+                {userAccount.accounts.length > 0 && (
+                    <Box component="section">
+                        <div className={styles.wallet_text}>
+                            Your wallet: {userAccount.accounts[0]}
+                        </div>
+                        <div className={styles.wallet_text}>
+                            ETH Balance: {balance}
+                        </div>
+                        <div className={styles.send_container}>
+                            <TextField
+                                size={minWidth770px ? "medium" : "small"}
+                                style={{ margin: 10 }}
+                                id="outlined-basic"
+                                label="address"
+                                variant="outlined"
+                                value={sendAccount}
+                                onChange={(
+                                    e: React.ChangeEvent<HTMLInputElement>
+                                ) => setSendAccount(e.target.value)}
+                            />
+                            <Button
+                                className={styles.send_button}
+                                disabled={!ethers.isHexString(sendAccount)}
+                                variant="contained"
+                                color="success"
+                                onClick={() =>
+                                    transact(
+                                        userAccount.accounts[0],
+                                        sendAccount
+                                            ? sendAccount
+                                            : userAccount.accounts[0]
+                                    )
+                                }
+                            >
+                                Send
+                            </Button>
+                        </div>
+                    </Box>
+                )}
+            </div>
         </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+    );
 }
