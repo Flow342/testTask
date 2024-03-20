@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./page.module.css";
 import { MetaMaskInpageProvider } from "@metamask/providers";
 import { ethers, formatEther } from "ethers";
@@ -51,8 +51,11 @@ export default function Home() {
             method: "eth_requestAccounts",
         });
         updateWallet(accounts);
-        getBalance(accounts[0]);
     };
+
+    useEffect(() => {
+        getBalance(userAccount.accounts[0]);
+    }, [userAccount]);
 
     return (
         <div className={styles.app}>
@@ -78,9 +81,9 @@ export default function Home() {
                                 label="address"
                                 variant="outlined"
                                 value={sendAccount}
-                                onChange={(
-                                    e: React.ChangeEvent<HTMLInputElement>
-                                ) => setSendAccount(e.target.value)}
+                                onChange={(e: any) =>
+                                    setSendAccount(e.target.value)
+                                }
                             />
                             <Button
                                 className={styles.send_button}
